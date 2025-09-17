@@ -1,0 +1,19 @@
+module main
+
+import std.console as c
+import std.math as m4th
+
+fn main() isize {
+    c.writeln(""Hello, "World"!"")
+    if (eqi(2, add(1, 0x1))) {
+        c.writeln("2 == 1 + 1")
+    }
+    if eqi {
+        add(1,2), 2 -> c.writeline("1 + 2 == 2") # cannot happen
+        add(1,1), 2 -> c.writeline("1 + 1 == 2")
+    } else {
+        c.writeln("Nothing matched")
+        return 1
+    }
+    return 0
+}
