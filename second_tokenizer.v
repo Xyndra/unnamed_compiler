@@ -20,19 +20,6 @@ enum AdvancedTokenType {
 	string       // "..." or ""..."..."" etc.
 }
 
-enum Keyword {
-	module
-	import
-	as // import ... as ... (never without `as`)
-	fn
-	return
-	if
-	else
-	for
-	pinboard
-	concept
-}
-
 type SecondTokenizerValue = []rune | Keyword
 
 struct SecondTokenizerToken {

@@ -9,5 +9,9 @@ fn main() {
 		eprintln('Error during retokenization: ${err}')
 		return
 	}
-	println(second_tokens)
+	ast := build_ast(second_tokens) or {
+		eprintln('Error during AST building: ${err}')
+		return
+	}
+	println(ast)
 }

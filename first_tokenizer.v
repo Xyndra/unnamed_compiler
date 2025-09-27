@@ -27,7 +27,7 @@ struct FirstTokenizerToken {
 }
 
 fn get_token_type(r rune) SimpleTokenType {
-	if r <= `9` && r >= `0` {
+	if (r <= `9` && r >= `0`) || r == `-` {
 		return SimpleTokenType.numeric
 	}
 	t := match r {
