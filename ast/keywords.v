@@ -1,3 +1,5 @@
+module ast
+
 enum Keyword {
 	module
 	// module ...
@@ -29,6 +31,6 @@ enum Keyword {
 	// go to a scope. this can go to a scope it is inside of or a scope defined before it.
 	pinboard
 	// pinboard '...
-	// creates a "pinboard", which 
+	// creates a "pinboard", which
 	concept
 }

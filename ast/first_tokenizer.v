@@ -1,9 +1,10 @@
-module main
+module ast
 
 enum SimpleTokenType {
 	alphanumeric
 	numeric
 	newline
+	equals       // =
 	open_parens  // (
 	close_parens // )
 	open_brace   // {
@@ -44,13 +45,14 @@ fn get_token_type(r rune) SimpleTokenType {
 		`"` { SimpleTokenType.quotation }
 		` `, `\t` { SimpleTokenType.whitespace }
 		`#` { SimpleTokenType.hashtag }
+		`=` { SimpleTokenType.equals }
 		else { SimpleTokenType.alphanumeric }
 	}
 	return t
 }
 
 // s: A list of lines (each line is a list of runes)
-fn tokenize(s [][]rune) []FirstTokenizerToken {
+pub fn tokenize(s [][]rune) []FirstTokenizerToken {
 	mut tokens := []FirstTokenizerToken{}
 	for l, line in s {
 		mut current_token := []rune{}

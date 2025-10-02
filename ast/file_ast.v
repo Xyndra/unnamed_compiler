@@ -1,4 +1,4 @@
-module main
+module ast
 
 struct Import {
 mut:
@@ -13,19 +13,19 @@ mut:
 	functions []Function
 }
 
-fn build_ast(tokens []SecondTokenizerToken) !FileAST {
-	mut ast := FileAST{}
+pub fn build_ast(tokens []SecondTokenizerToken) !FileAST {
+	mut file_ast := FileAST{}
 	mut i := -1
 
 	for i < tokens.len - 1 {
 		i++
 		token := tokens[i]
 		match true {
-			ast.module.len == 0 && token.type == .keyword
+			file_ast.module.len == 0 && token.type == .keyword
 				&& token.value == ?SecondTokenizerValue(Keyword.module) {
-				ast.module = handle_module(tokens, token, mut i) or { return err }
+				file_ast.module = handle_module(tokens, token, mut i) or { return err }
 			}
-			ast.module.len == 0 {
+			file_ast.module.len == 0 {
 				return error('Expected `module` keyword at the start of the file, but got `${token.type}`')
 			}
 			token.type == .keyword && token.value == ?SecondTokenizerValue(Keyword.module) {
@@ -33,10 +33,13 @@ fn build_ast(tokens []SecondTokenizerToken) !FileAST {
 			}
 			token.type == .keyword && token.value == ?SecondTokenizerValue(Keyword.import) {
 				// match import declarations
-				ast.imports << handle_import(tokens, token, mut i) or { return err }
+				file_ast.imports << handle_import(tokens, token, mut i) or { return err }
 			}
 			token.type == .keyword && token.value == ?SecondTokenizerValue(Keyword.fn) {
-				ast.functions << handle_function(tokens, token, mut i) or { return err }
+				file_ast.functions << handle_function(tokens, token, mut i) or {
+					dump(tokens[i])
+					return err
+				}
 			}
 			token.type == .newline {
 				// ignore newlines
@@ -49,7 +52,7 @@ fn build_ast(tokens []SecondTokenizerToken) !FileAST {
 		}
 	}
 
-	return ast
+	return file_ast
 }
 
 fn handle_module(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i &int) ![]rune {

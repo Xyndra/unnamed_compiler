@@ -1,4 +1,4 @@
-module main
+module ast
 
 import v.reflection
 
@@ -7,6 +7,7 @@ enum AdvancedTokenType {
 	keyword
 	number
 	newline
+	equals       // =
 	open_parens  // (
 	close_parens // )
 	open_brace   // {
@@ -31,7 +32,7 @@ struct SecondTokenizerToken {
 
 const keywords = (reflection.get_enums().filter(it.name == 'Keyword').first().sym.info as reflection.Enum).vals.map(it.runes())
 
-fn retokenize(tokens []FirstTokenizerToken) ![]SecondTokenizerToken {
+pub fn retokenize(tokens []FirstTokenizerToken) ![]SecondTokenizerToken {
 	mut new_tokens := []SecondTokenizerToken{}
 	mut i := 0
 	for i < tokens.len {
@@ -66,6 +67,14 @@ fn retokenize(tokens []FirstTokenizerToken) ![]SecondTokenizerToken {
 			.newline {
 				new_tokens << SecondTokenizerToken{
 					type:   .newline
+					value:  none
+					line:   t1.line
+					column: t1.column
+				}
+			}
+			.equals {
+				new_tokens << SecondTokenizerToken{
+					type:   .equals
 					value:  none
 					line:   t1.line
 					column: t1.column

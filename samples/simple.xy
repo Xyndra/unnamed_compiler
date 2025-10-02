@@ -9,15 +9,15 @@ fn output(string s) {
 
 fn main() isize {
     c.writeln(""Hello, "World"!"")
-    if (eqi(2, add(1, 0x1))) {
-        output("2 == 1 + 1")
-    }
-    if eqi {
-        add(1,2), 2 -> output("1 + 2 == 2") # cannot happen
-        add(1,1), 2 -> output("1 + 1 == 2")
-    } else {
-        c.writeln("Nothing matched")
-        return 1
-    }
+#    if (eqi(2, add(1, 0x1))) {
+#        output("2 == 1 + 1")
+#    }
+#    if eqi {
+#        add(1,2), 2 -> output("1 + 2 == 2") # cannot happen
+#        add(1,1), 2 -> output("1 + 1 == 2")
+#    } else {
+#        c.writeln("Nothing matched")
+#        return 1
+#    }
     return 0
 }

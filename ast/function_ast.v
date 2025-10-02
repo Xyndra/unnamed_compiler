@@ -1,4 +1,4 @@
-module main
+module ast
 
 struct Parameter {
 mut:
@@ -6,28 +6,22 @@ mut:
 	type []rune
 }
 
-type Statement = FunctionCall | ReturnStatement
-
-struct FunctionCall {
-mut:
-	name      []rune
-	arguments []Statement
-}
-
-struct ReturnStatement {
-mut:
-	value []Statement
-}
-
 struct Function {
 mut:
 	name        []rune
 	parameters  []Parameter
 	return_type []rune
-	body        []Statement
+	body        Scope
 }
 
 fn handle_function(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i &int) !Function {
+	mut func := handle_function_header(tokens, token, mut i)!
+	func.body = handle_scope(tokens, token, mut i)!
+
+	return func
+}
+
+fn handle_function_header(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i &int) !Function {
 	mut func := Function{}
 	i++
 	// get function name
