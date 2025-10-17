@@ -33,6 +33,7 @@ pub struct IfStatement {
 pub mut:
 	condition Statement
 	body      Scope
+	else_body ?Scope
 }
 
 pub struct Scope {
@@ -52,14 +53,9 @@ fn handle_scope(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i
 		match true {
 			token2.type == .close_brace {
 				// end of scope
-				// expect newline
+				// i currently points at the closing brace
+				// increment to position after it
 				i++
-				if i < tokens.len {
-					token3 := tokens[*i]
-					if token3.type != .newline {
-						return error('Expected newline after `}`, but got `${token3.type}`')
-					}
-				}
 				break
 			}
 			token2.type == .newline {
@@ -99,6 +95,76 @@ fn handle_scope(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i
 							return_statement: Return{
 								value: return_value
 							}
+						}
+					}
+					.if {
+						// Handle if statement
+						i++
+						if i >= tokens.len {
+							return error('Expected `(` after `if` keyword, but reached end of file')
+						}
+						token3 := tokens[*i]
+						if token3.type != .open_parens {
+							return error('Expected `(` after `if` keyword, but got `${token3.type}`')
+						}
+						i++
+						// Parse condition (should be a function call or value)
+						if i >= tokens.len {
+							return error('Expected condition after `(`, but reached end of file')
+						}
+						condition_token := tokens[*i]
+						condition := handle_value(tokens, condition_token, mut i)!
+						// Expect closing parenthesis
+						if i >= tokens.len {
+							return error('Expected `)` after if condition, but reached end of file')
+						}
+						token4 := tokens[*i]
+						if token4.type != .close_parens {
+							return error('Expected `)` after if condition, but got `${token4.type}`')
+						}
+						i++
+						// Expect opening brace for body
+						if i >= tokens.len {
+							return error('Expected `{` after if condition, but reached end of file')
+						}
+						token5 := tokens[*i]
+						if token5.type != .open_brace {
+							return error('Expected `{` after if condition, but got `${token5.type}`')
+						}
+						// Parse if body
+						if_body := handle_scope(tokens, token5, mut i)!
+
+						// Check for else keyword
+						mut else_body := ?Scope(none)
+						if i < tokens.len {
+							next_token := tokens[*i]
+							if next_token.type == .keyword {
+								if kw := next_token.value {
+									if kw is Keyword {
+										if kw == .else {
+											// Found else keyword
+											i++
+											// Expect opening brace for else body
+											if i >= tokens.len {
+												return error('Expected `{` after `else` keyword, but reached end of file')
+											}
+											else_token := tokens[*i]
+											if else_token.type != .open_brace {
+												return error('Expected `{` after `else` keyword, but got `${else_token.type}`')
+											}
+											// Parse else body
+											else_body = handle_scope(tokens, else_token, mut
+												i)!
+										}
+									}
+								}
+							}
+						}
+
+						statements << IfStatement{
+							condition: condition
+							body:      if_body
+							else_body: else_body
 						}
 					}
 					else {
@@ -218,7 +284,8 @@ fn handle_value(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i
 					}
 					continue
 				} else if token3.type == .open_parens {
-					// function call
+					// function call - consume the open_parens first
+					i++
 					return handle_function_call(tokens, full_identifier, mut i)!
 				} else {
 					// variable

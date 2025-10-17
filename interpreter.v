@@ -139,6 +139,39 @@ fn new_interpreter() Interpreter {
 		}
 	}
 
+	// Add base function: eqi (equals integer)
+	interp.predefines['eqi'] = Predefine_Func{
+		arg_types:    [.isize, .isize]
+		return_types: .bool
+		callback:     fn (args []Types) ?Types {
+			a := args[0] as isize
+			b := args[1] as isize
+			return Types(a == b)
+		}
+	}
+
+	// Add base function: adi (add integer)
+	interp.predefines['adi'] = Predefine_Func{
+		arg_types:    [.isize, .isize]
+		return_types: .isize
+		callback:     fn (args []Types) ?Types {
+			a := args[0] as isize
+			b := args[1] as isize
+			// Automatic overflow detection
+			result := a + b
+			return Types(result)
+		}
+	}
+
+	interp.predefines['not'] = Predefine_Func{
+		arg_types:    [.bool]
+		return_types: .bool
+		callback:     fn (args []Types) ?Types {
+			a := !(args[0] as bool)
+			return Types(a)
+		}
+	}
+
 	return interp
 }
 
@@ -228,8 +261,29 @@ fn (mut interp Interpreter) execute_statement(stmt ast.Statement) ! {
 			interp.evaluate_value(stmt)!
 		}
 		ast.IfStatement {
-			// TODO: Implement if statements
-			return error('If statements not yet implemented')
+			// Evaluate condition - condition is a Statement which is (Value | IfStatement)
+			condition_result := match stmt.condition {
+				ast.Value {
+					interp.evaluate_value(stmt.condition)!
+				}
+				ast.IfStatement {
+					return error('Nested if statements in condition not supported')
+				}
+			}
+			// Check if condition is a boolean
+			if condition_result is bool {
+				if condition_result as bool {
+					// Execute if body
+					interp.execute_scope(stmt.body)!
+				} else {
+					// Execute else body if it exists
+					if else_body := stmt.else_body {
+						interp.execute_scope(else_body)!
+					}
+				}
+			} else {
+				return error('If condition must evaluate to a boolean')
+			}
 		}
 	}
 }
@@ -239,8 +293,10 @@ fn (mut interp Interpreter) evaluate_value(val ast.Value) !Types {
 		ast.Number {
 			// Parse number and return appropriate type
 			text := val.text.string()
-			// Try to parse as isize for return values
-			num := text.parse_int(10, 64) or { return error('Failed to parse number: ${text}') }
+			// Try to parse as isize for return values. Numbers like "0x3" are automatically treaded as the correct base
+			num := text.parse_int(0, 64) or {
+				return error('Failed to parse number `${text}`: ${err}')
+			}
 			return Types(isize(num))
 		}
 		ast.String {

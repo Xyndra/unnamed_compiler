@@ -15,9 +15,14 @@ fn main() isize {
     # c.writeln(2)
     # c.abc(2)
     output("Hello, World 2!")
-#    if (eqi(2, add(1, 0x1))) {
-#        output("2 == 1 + 1")
-#    }
+    if (eqi(2, adi(1, 0x1))) {
+        output("2 == 1 + 1")
+    }
+    if (not(eqi(2, adi(1, 0x1)))) {
+        output("2 != 1 + 1")
+    } else {
+        output("2 == 1 + 1 confirmed with else")
+    }
 #    if eqi {
 #        add(1,2), 2 -> output("1 + 2 == 2") # cannot happen
 #        add(1,1), 2 -> output("1 + 1 == 2")
