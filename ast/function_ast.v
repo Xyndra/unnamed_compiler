@@ -1,13 +1,13 @@
 module ast
 
 struct Parameter {
-mut:
+pub mut:
 	name []rune
 	type []rune
 }
 
-struct Function {
-mut:
+pub struct Function {
+pub mut:
 	name        []rune
 	parameters  []Parameter
 	return_type []rune

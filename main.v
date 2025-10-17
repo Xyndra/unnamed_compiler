@@ -14,5 +14,9 @@ fn main() {
 		eprintln('Error during AST building: ${err}')
 		return
 	}
-	println(file_ast)
+	println('AST built successfully, running interpreter...')
+	interpret(file_ast) or {
+		eprintln('Error during interpretation: ${err}')
+		return
+	}
 }

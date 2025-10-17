@@ -1,6 +1,6 @@
 module main
 
-import std.console as c
+import compat.console as c
 import std.math as m4th
 
 fn output(string s) {
@@ -9,6 +9,7 @@ fn output(string s) {
 
 fn main() isize {
     c.writeln(""Hello, "World"!"")
+    output("Hello, World!")
 #    if (eqi(2, add(1, 0x1))) {
 #        output("2 == 1 + 1")
 #    }

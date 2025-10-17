@@ -1,13 +1,13 @@
 module ast
 
-struct Import {
-mut:
+pub struct Import {
+pub mut:
 	mod []rune
 	as  []rune
 }
 
-struct FileAST {
-mut:
+pub struct FileAST {
+pub mut:
 	module    []rune
 	imports   []Import
 	functions []Function

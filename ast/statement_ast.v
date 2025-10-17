@@ -1,39 +1,42 @@
 module ast
 
-type Value = Number | String | Variable | FunctionCall
-type Statement = Value | IfStatement
+pub type Value = Number | String | Variable | FunctionCall
+pub type Statement = Value | IfStatement
 
-struct Number {
+pub struct Number {
+pub:
 	text []rune
 }
 
-struct String {
+pub struct String {
+pub:
 	text []rune
 }
 
-struct Variable {
+pub struct Variable {
+pub:
 	name []rune
 }
 
-struct FunctionCall {
-mut:
+pub struct FunctionCall {
+pub mut:
 	name      []rune
 	arguments []Value
 }
 
-struct Return {
-mut:
+pub struct Return {
+pub mut:
 	value Value
 }
 
-struct IfStatement {
-mut:
+pub struct IfStatement {
+pub mut:
 	condition Statement
 	body      Scope
 }
 
-struct Scope {
-mut:
+pub struct Scope {
+pub mut:
 	statements       []Statement
 	return_statement ?Return
 }
@@ -94,7 +97,7 @@ fn handle_scope(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i
 						return Scope{
 							statements:       statements
 							return_statement: Return{
-								value: handle_value(tokens, token3, mut i)!
+								value: return_value
 							}
 						}
 					}
