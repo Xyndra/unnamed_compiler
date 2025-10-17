@@ -10,6 +10,11 @@ fn output(string s) {
 fn main() isize {
     c.writeln(""Hello, "World"!"")
     output("Hello, World!")
+    # These should error:
+    # output(2)
+    # c.writeln(2)
+    # c.abc(2)
+    output("Hello, World 2!")
 #    if (eqi(2, add(1, 0x1))) {
 #        output("2 == 1 + 1")
 #    }

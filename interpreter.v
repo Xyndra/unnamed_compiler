@@ -59,6 +59,26 @@ fn is_type_kind(t ?Types, kind TypeKind) bool {
 	}
 }
 
+fn (interp Interpreter) string_to_type_kind(type_str string) TypeKind {
+	return match type_str {
+		'string' { .string }
+		'i8' { .i8 }
+		'i16' { .i16 }
+		'i32' { .i32 }
+		'i64' { .i64 }
+		'u8' { .u8 }
+		'u16' { .u16 }
+		'u32' { .u32 }
+		'u64' { .u64 }
+		'f32' { .f32 }
+		'f64' { .f64 }
+		'bool' { .bool }
+		'isize' { .isize }
+		'void' { .void }
+		else { .identifier }
+	}
+}
+
 struct Identifier {
 	name []rune
 }
@@ -112,14 +132,9 @@ fn new_interpreter() Interpreter {
 		arg_types:    [.string]
 		return_types: .void
 		callback:     fn (args []Types) ?Types {
-			if args.len != 1 {
-				eprintln('console.writeln expects 1 argument, got ${args.len}')
-				return none
-			}
-			if args[0] is []rune {
-				runes := args[0] as []rune
-				println(runes.string())
-			}
+			// Type checking is done before callback is called
+			runes := args[0] as []rune
+			println(runes.string())
 			return none
 		}
 	}
@@ -162,11 +177,21 @@ fn (mut interp Interpreter) execute_function(func ast.Function, args []Types) !T
 	// Save current variables state
 	mut saved_vars := interp.variables.clone()
 
-	// Set up parameters as variables
+	// Validate argument count
 	if func.parameters.len != args.len {
-		return error('Function ${func.name.string()} expects ${func.parameters.len} arguments, got ${args.len}')
+		return error('Function `${func.name.string()}` expects ${func.parameters.len} arguments, got ${args.len}')
 	}
 
+	// Validate argument types
+	for i, param in func.parameters {
+		param_type := param.type.string()
+		expected_kind := interp.string_to_type_kind(param_type)
+		if !is_type_kind(args[i], expected_kind) {
+			return error('Function `${func.name.string()}` argument ${i + 1} has wrong type, expected ${param_type}')
+		}
+	}
+
+	// Set up parameters as variables
 	for i, param in func.parameters {
 		param_name := param.name.string()
 		interp.variables[param_name] = args[i]
@@ -248,9 +273,20 @@ fn (mut interp Interpreter) execute_function_call(call ast.FunctionCall) !Types 
 	// Check if it's a predefined function
 	if resolved_name in interp.predefines {
 		predef := interp.predefines[resolved_name] or {
-			return error('Function not found: ${resolved_name}')
+			panic('Function in predefines but not found?!')
 		}
 		if predef is Predefine_Func {
+			// Validate argument count
+			if args.len != predef.arg_types.len {
+				return error('Function `${resolved_name}` expects ${predef.arg_types.len} arguments, got ${args.len}')
+			}
+			// Validate argument types
+			for i, arg_type in predef.arg_types {
+				if !is_type_kind(args[i], arg_type) {
+					return error('Function `${resolved_name}` argument ${i + 1} has wrong type, expected ${arg_type}')
+				}
+			}
+			// Types are validated, call the callback
 			result := predef.callback(args) or { return Types(isize(0)) }
 			return result
 		}
@@ -262,7 +298,7 @@ fn (mut interp Interpreter) execute_function_call(call ast.FunctionCall) !Types 
 		return interp.execute_function(user_func, args)!
 	}
 
-	return error('Unknown function: ${func_name}')
+	return error('Unknown function: `${func_name}`')
 }
 
 fn (interp Interpreter) resolve_alias(func_name string) string {
