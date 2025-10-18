@@ -23,12 +23,31 @@ fn main() isize {
     } else {
         output("2 == 1 + 1 confirmed with else")
     }
-#    if eqi {
-#        add(1,2), 2 -> output("1 + 2 == 2") # cannot happen
-#        add(1,1), 2 -> output("1 + 1 == 2")
-#    } else {
-#        c.writeln("Nothing matched")
-#        return 1
-#    }
+    # this should error:
+    # if ("abc") {
+    #     output("abc")
+    # }
+    # if (0x2) {
+    #     output("2")
+    # }
+    if eqi {
+        adi(1,2), 2 -> output("1 + 2 == 2")
+        adi(1,1), 2 -> output("1 + 1 == 2")
+    } else {
+        c.writeln("Nothing matched")
+        return 1
+    }
+    if eqi {
+        adi(1,2), 5 -> output("1 + 2 == 5")
+        adi(1,1), 5 -> output("1 + 1 == 5")
+    } else {
+        c.writeln("No match found - going to else")
+    }
+    # this should error:
+    # if output {
+    #     "abc" -> output("1 + 2 == 5")
+    # } else {
+    #     c.writeln("No match found - going to else")
+    # }
     return 0
 }

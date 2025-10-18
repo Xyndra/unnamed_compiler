@@ -1,7 +1,7 @@
 module ast
 
 pub type Value = Number | String | Variable | FunctionCall
-pub type Statement = Value | IfStatement
+pub type Statement = Value | IfStatement | IfMatchStatement
 
 pub struct Number {
 pub:
@@ -31,9 +31,22 @@ pub mut:
 
 pub struct IfStatement {
 pub mut:
-	condition Statement
+	condition Value
 	body      Scope
 	else_body ?Scope
+}
+
+pub struct IfMatchBranch {
+pub mut:
+	arguments []Value
+	body      Statement
+}
+
+pub struct IfMatchStatement {
+pub mut:
+	function_name []rune
+	branches      []IfMatchBranch
+	else_body     ?Scope
 }
 
 pub struct Scope {
@@ -101,47 +114,112 @@ fn handle_scope(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i
 						// Handle if statement
 						i++
 						if i >= tokens.len {
-							return error('Expected `(` after `if` keyword, but reached end of file')
+							return error('Expected `(` or identifier after `if` keyword, but reached end of file')
 						}
 						token3 := tokens[*i]
-						if token3.type != .open_parens {
-							return error('Expected `(` after `if` keyword, but got `${token3.type}`')
-						}
-						i++
-						// Parse condition (should be a function call or value)
-						if i >= tokens.len {
-							return error('Expected condition after `(`, but reached end of file')
-						}
-						condition_token := tokens[*i]
-						condition := handle_value(tokens, condition_token, mut i)!
-						// Expect closing parenthesis
-						if i >= tokens.len {
-							return error('Expected `)` after if condition, but reached end of file')
-						}
-						token4 := tokens[*i]
-						if token4.type != .close_parens {
-							return error('Expected `)` after if condition, but got `${token4.type}`')
-						}
-						i++
-						// Expect opening brace for body
-						if i >= tokens.len {
-							return error('Expected `{` after if condition, but reached end of file')
-						}
-						token5 := tokens[*i]
-						if token5.type != .open_brace {
-							return error('Expected `{` after if condition, but got `${token5.type}`')
-						}
-						// Parse if body
-						if_body := handle_scope(tokens, token5, mut i)!
+						// Check if it's a match-style if (identifier followed by {)
+						if token3.type == .identifier {
+							// Match-style if: if funcname { args -> body ... }
+							func_name := token3.value or {
+								return error('Expected function name, but got nothing')
+							} as []rune
+							i++
 
-						// Check for else keyword
-						mut else_body := ?Scope(none)
-						if i < tokens.len {
-							next_token := tokens[*i]
-							if next_token.type == .keyword {
-								if kw := next_token.value {
-									if kw is Keyword {
-										if kw == .else {
+							// Expect opening brace
+							if i >= tokens.len {
+								return error('Expected `{` after function name in match-style if, but reached end of file')
+							}
+							token4 := tokens[*i]
+							if token4.type != .open_brace {
+								return error('Expected `{` after function name in match-style if, but got `${token4.type}`')
+							}
+							i++
+
+							// Parse branches
+							mut branches := []IfMatchBranch{}
+							for {
+								if i >= tokens.len {
+									return error('Expected branch or `}` in match-style if, but reached end of file')
+								}
+								branch_token := tokens[*i]
+
+								// Check for closing brace or else
+								if branch_token.type == .close_brace {
+									i++
+									break
+								}
+								if branch_token.type == .keyword {
+									if kw := branch_token.value {
+										if kw is Keyword && kw == .else {
+											break
+										}
+									}
+								}
+								if branch_token.type == .newline {
+									i++
+									continue
+								}
+
+								// Parse arguments before ->
+								mut args := []Value{}
+								for {
+									if i >= tokens.len {
+										return error('Expected argument or `->` in match branch, but reached end of file')
+									}
+									arg_token := tokens[*i]
+
+									if arg_token.type == .arrow {
+										// End of arguments
+										i++
+										break
+									}
+
+									// Parse argument value
+									arg_val := handle_value(tokens, arg_token, mut i)!
+									args << arg_val
+
+									// Expect comma or arrow
+									if i >= tokens.len {
+										return error('Expected `,` or `->` after argument, but reached end of file')
+									}
+									next_token := tokens[*i]
+									if next_token.type == .comma {
+										i++
+										continue
+									} else if next_token.type == .arrow {
+										i++
+										break
+									} else {
+										return error('Expected `,` or `->` after argument, but got `${next_token.type}`')
+									}
+								}
+
+								// Parse body (single statement)
+								if i >= tokens.len {
+									return error('Expected body after `->` in match branch, but reached end of file')
+								}
+								body_token := tokens[*i]
+								body_stmt := handle_single_statement(tokens, body_token, mut
+									i)!
+
+								branches << IfMatchBranch{
+									arguments: args
+									body:      body_stmt
+								}
+
+								// Expect newline after branch
+								if i < tokens.len && tokens[*i].type == .newline {
+									i++
+								}
+							}
+
+							// Check for else keyword
+							mut else_body := ?Scope(none)
+							if i < tokens.len {
+								next_token := tokens[*i]
+								if next_token.type == .keyword {
+									if kw := next_token.value {
+										if kw is Keyword && kw == .else {
 											// Found else keyword
 											i++
 											// Expect opening brace for else body
@@ -159,12 +237,75 @@ fn handle_scope(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i
 									}
 								}
 							}
-						}
 
-						statements << IfStatement{
-							condition: condition
-							body:      if_body
-							else_body: else_body
+							statements << IfMatchStatement{
+								function_name: func_name
+								branches:      branches
+								else_body:     else_body
+							}
+						} else if token3.type == .open_parens {
+							// Regular if statement: if (condition) { ... }
+							i++
+							// Parse condition (should be a function call or value)
+							if i >= tokens.len {
+								return error('Expected condition after `(`, but reached end of file')
+							}
+							condition_token := tokens[*i]
+							condition := handle_value(tokens, condition_token, mut i)!
+							// Expect closing parenthesis
+							if i >= tokens.len {
+								return error('Expected `)` after if condition, but reached end of file')
+							}
+							token4 := tokens[*i]
+							if token4.type != .close_parens {
+								return error('Expected `)` after if condition, but got `${token4.type}`')
+							}
+							i++
+							// Expect opening brace for body
+							if i >= tokens.len {
+								return error('Expected `{` after if condition, but reached end of file')
+							}
+							token5 := tokens[*i]
+							if token5.type != .open_brace {
+								return error('Expected `{` after if condition, but got `${token5.type}`')
+							}
+							// Parse if body
+							if_body := handle_scope(tokens, token5, mut i)!
+
+							// Check for else keyword
+							mut else_body := ?Scope(none)
+							if i < tokens.len {
+								next_token := tokens[*i]
+								if next_token.type == .keyword {
+									if kw := next_token.value {
+										if kw is Keyword {
+											if kw == .else {
+												// Found else keyword
+												i++
+												// Expect opening brace for else body
+												if i >= tokens.len {
+													return error('Expected `{` after `else` keyword, but reached end of file')
+												}
+												else_token := tokens[*i]
+												if else_token.type != .open_brace {
+													return error('Expected `{` after `else` keyword, but got `${else_token.type}`')
+												}
+												// Parse else body
+												else_body = handle_scope(tokens, else_token, mut
+													i)!
+											}
+										}
+									}
+								}
+							}
+
+							statements << IfStatement{
+								condition: condition
+								body:      if_body
+								else_body: else_body
+							}
+						} else {
+							return error('Expected `(` or identifier after `if` keyword, but got `${token3.type}`')
 						}
 					}
 					else {

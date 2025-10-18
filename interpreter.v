@@ -220,18 +220,11 @@ fn (mut interp Interpreter) execute_statement(stmt ast.Statement) ! {
 			interp.evaluate_value(stmt)!
 		}
 		ast.IfStatement {
-			// Evaluate condition - condition is a Statement which is (Value | IfStatement)
-			condition_result := match stmt.condition {
-				ast.Value {
-					interp.evaluate_value(stmt.condition)!
-				}
-				ast.IfStatement {
-					return error('Nested if statements in condition not supported')
-				}
-			}
+			// Evaluate condition
+			result := interp.evaluate_value(stmt.condition)!
 			// Check if condition is a boolean
-			if condition_result is bool {
-				if condition_result as bool {
+			if result is bool {
+				if result as bool {
 					// Execute if body
 					interp.execute_scope(stmt.body)!
 				} else {
@@ -241,7 +234,57 @@ fn (mut interp Interpreter) execute_statement(stmt ast.Statement) ! {
 					}
 				}
 			} else {
-				return error('If condition must evaluate to a boolean')
+				return error('If condition must evaluate to a boolean, not `${result}`')
+			}
+		}
+		ast.IfMatchStatement {
+			// Match-style if: if funcname { args -> body ... }
+			// Try each branch until one matches
+			mut matched := false
+			for branch in stmt.branches {
+				// Evaluate all arguments for this branch
+				mut args := []Types{}
+				for arg in branch.arguments {
+					args << interp.evaluate_value(arg)!
+				}
+
+				// Create a function call with the function name and arguments
+				func_call := ast.FunctionCall{
+					name:      stmt.function_name
+					arguments: branch.arguments
+				}
+
+				// Execute the function call
+				result := interp.execute_function_call(func_call)!
+
+				// Check if the result is true
+				if result is bool {
+					if result as bool {
+						// This branch matches - execute its body
+						match branch.body {
+							ast.Value {
+								interp.evaluate_value(branch.body)!
+							}
+							ast.IfStatement {
+								interp.execute_statement(branch.body)!
+							}
+							ast.IfMatchStatement {
+								interp.execute_statement(branch.body)!
+							}
+						}
+						matched = true
+						break
+					}
+				} else {
+					return error('Match function must return a boolean, got `${result}`')
+				}
+			}
+
+			// If no branch matched, execute else body
+			if !matched {
+				if else_body := stmt.else_body {
+					interp.execute_scope(else_body)!
+				}
 			}
 		}
 	}
