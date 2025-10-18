@@ -16,6 +16,7 @@ type Types = Restruct
 	| f64
 	| bool
 	| isize
+	| usize
 
 enum TypeKind {
 	identifier
@@ -33,6 +34,7 @@ enum TypeKind {
 	bool
 	void
 	isize
+	usize
 }
 
 fn is_type_kind(t ?Types, kind TypeKind) bool {
@@ -55,6 +57,7 @@ fn is_type_kind(t ?Types, kind TypeKind) bool {
 		.f64 { new_t is f64 }
 		.bool { new_t is bool }
 		.isize { new_t is isize }
+		.usize { new_t is usize }
 		else { false }
 	}
 }
@@ -75,6 +78,7 @@ fn (interp Interpreter) string_to_type_kind(type_str string) TypeKind {
 		'bool' { .bool }
 		'isize' { .isize }
 		'void' { .void }
+		'usize' { .usize }
 		else { .identifier }
 	}
 }
