@@ -126,52 +126,7 @@ mut:
 
 fn new_interpreter() Interpreter {
 	mut interp := Interpreter{}
-
-	// Add built-in console.writeln function (with full module path)
-	interp.predefines['compat.console.writeln'] = Predefine_Func{
-		arg_types:    [.string]
-		return_types: .void
-		callback:     fn (args []Types) ?Types {
-			// Type checking is done before callback is called
-			runes := args[0] as []rune
-			println(runes.string())
-			return none
-		}
-	}
-
-	// Add base function: eqi (equals integer)
-	interp.predefines['eqi'] = Predefine_Func{
-		arg_types:    [.isize, .isize]
-		return_types: .bool
-		callback:     fn (args []Types) ?Types {
-			a := args[0] as isize
-			b := args[1] as isize
-			return Types(a == b)
-		}
-	}
-
-	// Add base function: adi (add integer)
-	interp.predefines['adi'] = Predefine_Func{
-		arg_types:    [.isize, .isize]
-		return_types: .isize
-		callback:     fn (args []Types) ?Types {
-			a := args[0] as isize
-			b := args[1] as isize
-			// Automatic overflow detection
-			result := a + b
-			return Types(result)
-		}
-	}
-
-	interp.predefines['not'] = Predefine_Func{
-		arg_types:    [.bool]
-		return_types: .bool
-		callback:     fn (args []Types) ?Types {
-			a := !(args[0] as bool)
-			return Types(a)
-		}
-	}
-
+	interp.predefines = setup_predefines()
 	return interp
 }
 
