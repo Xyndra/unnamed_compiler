@@ -13,13 +13,10 @@ enum Keyword {
 	// fn ...(...,...) -> ... { ... return ... }
 	// fn ...(...,...) -> code { ... return ... }
 	// macros are like functions, but they are executed at compile time and return a string which becomes code
-	let
-	const
-	inline
-	// let x'. = ...
-	// const x'. = ...
-	// inline const x = ...
-	// inline is not for functions. use macros for that.
+	var
+	// var x'. = ...
+	// '. means scope-pinned lifetime - variable is deleted when scope exits, like in normal languages
+	// 'identifier will be supported for custom lifetimes in the future
 	if
 	else
 	// if (...) { ... } else { ... }
@@ -29,8 +26,6 @@ enum Keyword {
 	// scope ... { ... }
 	// go ...
 	// go to a scope. this can go to a scope it is inside of or a scope defined before it.
-	pinboard
-	// pinboard '...
-	// creates a "pinboard", which
 	concept
+	// concepts are a way to create DSLs using currying. TODO
 }

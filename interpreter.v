@@ -219,6 +219,22 @@ fn (mut interp Interpreter) execute_statement(stmt ast.Statement) ! {
 			// Execute value (typically a function call)
 			interp.evaluate_value(stmt)!
 		}
+		ast.VariableDeclaration {
+			// Declare and initialize variable
+			value := interp.evaluate_value(stmt.value)!
+			var_name := stmt.name.string()
+			interp.variables[var_name] = value
+		}
+		ast.VariableAssignment {
+			// Assign to existing variable
+			value := interp.evaluate_value(stmt.value)!
+			var_name := stmt.name.string()
+			if var_name !in interp.variables {
+				// TODO: Check what happens between different scopes
+				return error('Undefined variable: ${var_name}')
+			}
+			interp.variables[var_name] = value
+		}
 		ast.IfStatement {
 			// Evaluate condition
 			result := interp.evaluate_value(stmt.condition)!
@@ -261,17 +277,7 @@ fn (mut interp Interpreter) execute_statement(stmt ast.Statement) ! {
 				if result is bool {
 					if result as bool {
 						// This branch matches - execute its body
-						match branch.body {
-							ast.Value {
-								interp.evaluate_value(branch.body)!
-							}
-							ast.IfStatement {
-								interp.execute_statement(branch.body)!
-							}
-							ast.IfMatchStatement {
-								interp.execute_statement(branch.body)!
-							}
-						}
+						interp.execute_statement(branch.body)!
 						matched = true
 						break
 					}

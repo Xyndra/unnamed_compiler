@@ -48,5 +48,25 @@ fn setup_predefines() map[string]Predefine {
 		}
 	}
 
+	predefines['itos'] = Predefine_Func{
+		arg_types:    [.isize]
+		return_types: .string
+		callback:     fn (args []Types) ?Types {
+			a := args[0] as isize
+			return Types(a.str().runes())
+		}
+	}
+
+	predefines['strc'] = Predefine_Func{
+		arg_types:    [.string, .string]
+		return_types: .string
+		callback:     fn (args []Types) ?Types {
+			mut a := args[0] as []rune
+			a << args[1] as []rune
+
+			return Types(a)
+		}
+	}
+
 	return predefines
 }

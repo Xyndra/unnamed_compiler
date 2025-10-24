@@ -1,0 +1,15 @@
+module main
+
+import compat.console as c
+
+fn main() isize {
+    var a'. = 1
+    c.writeln(strc("Initial value of a: ", itos(a)))
+    a = 2
+    c.writeln(strc("After assignment, a: ", itos(a)))
+    var b'. = 42
+    c.writeln(strc("Variable b: ", itos(b)))
+    b = adi(a, b)
+    c.writeln(strc("After addition, b: ", itos(b)))
+    return 0
+}

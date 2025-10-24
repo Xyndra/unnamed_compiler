@@ -1,7 +1,18 @@
 module ast
 
 pub type Value = Number | String | Variable | FunctionCall
-pub type Statement = Value | IfStatement | IfMatchStatement
+pub type Statement = Value | IfStatement | IfMatchStatement | VariableDeclaration | VariableAssignment
+
+pub enum LifetimeType {
+	scope_pinned // '. - pinned to current scope
+	custom       // 'identifier - custom lifetime (future feature)
+}
+
+pub struct Lifetime {
+pub:
+	type LifetimeType
+	name ?[]rune // For custom lifetimes
+}
 
 pub struct Number {
 pub:
@@ -16,6 +27,19 @@ pub:
 pub struct Variable {
 pub:
 	name []rune
+}
+
+pub struct VariableDeclaration {
+pub mut:
+	name     []rune
+	lifetime Lifetime
+	value    Value
+}
+
+pub struct VariableAssignment {
+pub mut:
+	name  []rune
+	value Value
 }
 
 pub struct FunctionCall {
@@ -78,6 +102,10 @@ fn handle_scope(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i
 			token2.type == .keyword {
 				value := token2.value or { return error('Expected keyword, but got nothing') } as Keyword
 				match value {
+					.var {
+						// Variable declaration
+						statements << handle_variable_declaration(tokens, token2, mut i)!
+					}
 					.return {
 						i++
 						if i >= tokens.len {
@@ -327,6 +355,67 @@ fn handle_scope(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i
 	}
 }
 
+fn handle_variable_declaration(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i &int) !Statement {
+	// var name'lifetime = value
+	i++
+	if i >= tokens.len {
+		return error('Expected variable name after `var` keyword, but reached end of file')
+	}
+	
+	name_token := tokens[*i]
+	if name_token.type != .identifier {
+		return error('Expected variable name after `var` keyword, but got `${name_token.type}`')
+	}
+	var_name := name_token.value or { return error('Expected variable name, but got nothing') } as []rune
+	i++
+	
+	// Check for lifetime specifier
+	if i >= tokens.len {
+		return error('Expected lifetime specifier or `=` after variable name, but reached end of file')
+	}
+	
+	mut lifetime := Lifetime{
+		type: .scope_pinned
+		name: none
+	}
+	
+	lifetime_token := tokens[*i]
+	if lifetime_token.type == .pin {
+		// Has lifetime specifier
+		pin_value := lifetime_token.value or { return error('Expected lifetime value, but got nothing') } as []rune
+		if pin_value.string() != '.' {
+			// Custom lifetime (future feature)
+			lifetime = Lifetime{
+				type: .custom
+				name: pin_value
+			}
+		}
+		i++
+	}
+	
+	// Expect equals sign
+	if i >= tokens.len {
+		return error('Expected `=` after variable name/lifetime, but reached end of file')
+	}
+	equals_token := tokens[*i]
+	if equals_token.type != .equals {
+		return error('Expected `=` after variable name/lifetime, but got `${equals_token.type}`')
+	}
+	i++
+	
+	// Parse value
+	if i >= tokens.len {
+		return error('Expected value after `=`, but reached end of file')
+	}
+	value := handle_value(tokens, tokens[*i], mut i)!
+	
+	return VariableDeclaration{
+		name:     var_name
+		lifetime: lifetime
+		value:    value
+	}
+}
+
 fn handle_single_statement(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i &int) !Statement {
 	// function call or variable set
 	mut full_identifier := []rune{}
@@ -372,9 +461,18 @@ fn handle_single_statement(tokens []SecondTokenizerToken, token SecondTokenizerT
 		// function call
 		return Value(handle_function_call(tokens, full_identifier, mut i)!)
 	} else if token4.type == .equals {
-		// variable set
+		// variable assignment
+		if i >= tokens.len {
+			return error('Expected value after `=`, but reached end of file')
+		}
+		value := handle_value(tokens, tokens[*i], mut i)!
+		
+		return VariableAssignment{
+			name:  full_identifier
+			value: value
+		}
 	}
-	return error('Not implemented')
+	return error('Expected `(` for function call or `=` for variable assignment')
 }
 
 fn handle_value(tokens []SecondTokenizerToken, token SecondTokenizerToken, mut i &int) !Value {
