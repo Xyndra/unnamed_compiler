@@ -4,7 +4,7 @@ import os
 import ast
 
 fn main() {
-	file := 'samples/simple.xy'
+	file := @VMODROOT + '/samples/simple.xy'
 	first_tokens := ast.tokenize(os.read_file(file)!.split_into_lines().map(it.runes()))
 	second_tokens := ast.retokenize(first_tokens) or {
 		eprintln('Error during retokenization: ${err}')

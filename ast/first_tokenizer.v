@@ -28,7 +28,7 @@ struct FirstTokenizerToken {
 }
 
 fn get_token_type(r rune) SimpleTokenType {
-	if (r <= `9` && r >= `0`) || r == `-` {
+	if r <= `9` && r >= `0` {
 		return SimpleTokenType.numeric
 	}
 	t := match r {
@@ -76,6 +76,9 @@ pub fn tokenize(s [][]rune) []FirstTokenizerToken {
 						&& (t == .alphanumeric || t == .period) {
 						// this is to allow floating point numbers and hex/bin/oct notation. noop
 						// note that this will be invalidated later in case of something like "1.2.3", "0xG" or "1a2"
+					}
+					current_token_type == ?SimpleTokenType(.dash) && t == .numeric {
+						current_token_type = ?SimpleTokenType(.numeric)
 					}
 					else {
 						tokens << FirstTokenizerToken{
