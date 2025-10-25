@@ -9,7 +9,19 @@ fn main() isize {
     c.writeln(strc("After assignment, a: ", itos(a)))
     var b'. = 42
     c.writeln(strc("Variable b: ", itos(b)))
+    a()
     b = adi(a, b)
     c.writeln(strc("After addition, b: ", itos(b)))
     return 0
+}
+
+fn a() {
+    # this should error
+    # c.writeln(itos(b))
+
+    # this should not overwrite b from main
+    var b'. = 100
+    c.writeln(strc("Variable b: ", itos(b)))
+    # this should error because b is already defined
+    # var b'. = 1
 }

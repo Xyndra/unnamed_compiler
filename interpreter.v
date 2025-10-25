@@ -169,6 +169,9 @@ fn (mut interp Interpreter) execute_function(func ast.Function, args []Types) !T
 	// Save current variables state
 	mut saved_vars := interp.variables.clone()
 
+	// Clear variables to create a new scope (functions cannot access parent scope variables)
+	interp.variables.clear()
+
 	// Validate argument count
 	if func.parameters.len != args.len {
 		return error('Function `${func.name.string()}` expects ${func.parameters.len} arguments, got ${args.len}')
@@ -221,8 +224,11 @@ fn (mut interp Interpreter) execute_statement(stmt ast.Statement) ! {
 		}
 		ast.VariableDeclaration {
 			// Declare and initialize variable
-			value := interp.evaluate_value(stmt.value)!
 			var_name := stmt.name.string()
+			if var_name in interp.variables {
+				return error('Variable `${var_name}` is already defined in this scope')
+			}
+			value := interp.evaluate_value(stmt.value)!
 			interp.variables[var_name] = value
 		}
 		ast.VariableAssignment {
